@@ -12,10 +12,7 @@ if(isempty(tokens))
 end;
 
 file_names = cellfun(@(x) x{1},tokens,'UniformOutput',false)';
-idx = strcmp(cellfun(@(x) x{2},tokens,'UniformOutput',false)','mutagen');
-
-classes(idx) = 1;
-classes(~idx) = 2;
+classes = str2double(cellfun(@(x) x{2},tokens,'UniformOutput',false))';
 
 clear idx tokens;
 

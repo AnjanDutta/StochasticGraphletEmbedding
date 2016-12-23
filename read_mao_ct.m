@@ -18,9 +18,8 @@ tline = fgetl(fp);
 i = 1;
 while i<=nvertices
     
-    l = sscanf(tline,'%f %f %f %c')';
-    atrvertices{i} = {l(1:3),char(l(4))};
-    
+    l = sscanf(tline,'%*f %*f %*f %c')';
+    atrvertices{i} = char(l(1));    
     
     tline = fgetl(fp);
     i = i+1;
@@ -41,6 +40,8 @@ while i<=nedges
     i = i+1;
     
 end;
+
+atredges(:,2) = atredges(:,2) + 1;
 
 fclose(fp);
 

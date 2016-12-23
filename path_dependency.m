@@ -2,7 +2,7 @@ user = getenv('USER');
 
 switch user
     case 'root'
-        workhome = '/home/adutta/';
+        workhome = '/home/anjan/';
     case 'dag'
         workhome = '/home/dag/';
 end;
