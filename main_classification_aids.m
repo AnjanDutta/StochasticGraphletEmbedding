@@ -1,8 +1,20 @@
-function main_classification_coildel()
+function main_classification_aids()
 
 path_dependency;
 
-workhome = '/home/anjan/Workspace/'; 
+user = getenv('USER');
+
+switch user
+    case 'root'
+        workhome = '/home/anjan/Workspace/';
+    case 'dag'
+        workhome = '/home/dag/Workspace/';
+    case 'adutta'
+        workhome = '/home/dag/adutta/';
+end;
+
+file_node_vocab = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/AIDS','node_vocab.mat');
+file_edge_vocab = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/AIDS','edge_vocab.mat');
 
 force_compute.vocab = false;
 force_compute.hist_indices = false;
@@ -14,13 +26,13 @@ cc = [1 10 50 100 1000];
 % seeding randomization
 rng(0);
 
-dir_graphs = [workhome,'Datasets/IAMGraphs/COIL-DEL/data'];
+dir_graphs = [workhome,'Datasets/IAMGraphs/AIDS/data'];
 
-[train_graph_names,train_classes] = read_coildel_cxl(fullfile(dir_graphs,'train.cxl'));
-[valid_graph_names,valid_classes] = read_coildel_cxl(fullfile(dir_graphs,'valid.cxl'));
+[train_graph_names,train_classes] = read_aids_cxl(fullfile(dir_graphs,'train.cxl'));
+[valid_graph_names,valid_classes] = read_aids_cxl(fullfile(dir_graphs,'valid.cxl'));
 train_graph_names = [train_graph_names; valid_graph_names] ;
 train_classes = [train_classes; valid_classes] ;
-[test_graph_names,test_classes] = read_coildel_cxl(fullfile(dir_graphs,'test.cxl'));
+[test_graph_names,test_classes] = read_aids_cxl(fullfile(dir_graphs,'test.cxl'));
 
 graph_names = [train_graph_names;test_graph_names];
 
@@ -39,7 +51,37 @@ for ic = uniq_classes
     nc = nnz(train_classes == ic);
     w_str = [w_str,sprintf('-w%d %.2f ',ic,ntrain_set/nc)];
 end;
+%% First create a node and edge vocabulary
 
+if(~exist(file_node_vocab,'file')||force_compute.vocab)
+    
+    cntrs_atrvertices = [];
+    cntrs_atredges = [];
+    
+    fprintf('Creating node vocabulary...');
+    
+    for i = 1:ngraphs
+        
+        [~,~,atrvertices,~,~,~] =...
+            read_aids_gxl(fullfile(dir_graphs,graph_names{i}));
+        
+        cntrs_atrvertices = unique([cntrs_atrvertices;atrvertices]);
+        
+        clear atrvertices;
+        
+    end;
+    
+    save(file_node_vocab,'cntrs_atrvertices');    
+   
+    fprintf('Done.\n');
+    
+else
+    
+    fprintf('Node vocabulary already exist.\n');    
+    
+    load(file_node_vocab,'cntrs_atrvertices');
+    
+end;
 %% Now create histogram indices
 
 epss = [0.1 0.05];
@@ -52,9 +94,9 @@ T = [1 1 3 5 12 30 79 227 710 2322 8071];
 for ieps = 1:2
     for idel = 1:2
         
-        file_hist_indices = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/COIL-DEL',sprintf('hist_indices_%d_%d.mat',ieps,idel));
-        file_kernels = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/COIL-DEL',sprintf('kernels_%d_%d.mat',ieps,idel));
-        file_results = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/COIL-DEL',sprintf('results_%d_%d.txt',ieps,idel));
+        file_hist_indices = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/AIDS',sprintf('hist_indices_%d_%d.mat',ieps,idel));
+        file_kernels = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/AIDS',sprintf('kernels_%d_%d.mat',ieps,idel));
+        file_results = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/AIDS',sprintf('results_%d_%d.txt',ieps,idel));
         
         epsi = epss(ieps);
         deli = dels(idel);
@@ -72,12 +114,18 @@ for ieps = 1:2
                 fprintf('Graph: %s. ',graph_names{i});
 
                 tic;               
-                [~,~,~,edges,~,atredges] =...
-                    read_coildel_gxl(fullfile(dir_graphs,graph_names{i}));
+                [~,~,atrvertices,edges,~,atredges] =...
+                    read_aids_gxl(fullfile(dir_graphs,graph_names{i}));
+                
+                if(size(edges,1) <= 1)
+                    continue;
+                end;
+                    
+                [~,classes_vertices] = ismember(atrvertices,cntrs_atrvertices);
 
                 classes_edges = atredges ;
 
-                clear atredges;
+                clear atrvertices atredges;
 
                 graphlets = generate_random_graphlets(uint32(edges),MAX1(end),MAX2);
                 
@@ -125,13 +173,16 @@ for ieps = 1:2
                 hash_codes(idxle4) = sorted_degrees_nodes;
                 hash_codes(idxge5) = betweenness_centralities;
 
+                % calculate node signatures with the help of classes of the vertices
+                node_sign = cellfun(@(x) sort(classes_vertices(x))',graphlets,'UniformOutput',false);
+
                 % calculate edge signatures with the help of classes of the vertices
                 edges_graphlets = cellfun(@(x) [x(1:2:end)' x(2:2:end)'],graphlets,'UniformOutput',false);
                 [~,idx_edges] = cellfun(@(x) ismember(x,edges,'rows'), edges_graphlets, 'UniformOutput', false);
                 edge_sign = cellfun(@(x) classes_edges(x)', idx_edges, 'UniformOutput', false);
 
                 for j = 1:size(hash_codes,1)
-                    hash_codes{j} = [edge_sign{j},hash_codes{j},zeros(1,2*sizes_graphlets(j)-size(hash_codes{j},2))];
+                    hash_codes{j} = [node_sign{j},edge_sign{j},hash_codes{j},zeros(1,2*sizes_graphlets(j)-size(hash_codes{j},2))];
                 end;
 
         %         coors_graphlets = cell2mat(cellfun(@(x) mean(G.V(x,:)),graphlets,'UniformOutput',false));
