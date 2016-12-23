@@ -224,6 +224,8 @@ for ieps = 1:2
 
         %% Compute histograms and kernels
         
+        acc = zeros(niter,MAX2+1);
+        
         for iter = 1:niter
             
             train_seti = train_set{iter} ;
@@ -270,8 +272,6 @@ for ieps = 1:2
             end;
             %% Training and testing individual kernels, multi-class classifier
 
-            acc = zeros(1,MAX2+1);
-
             for i = 1:MAX2
 
                 K_train = [(1:ntrain_set)' KM_train(:,:,i)];
@@ -292,12 +292,12 @@ for ieps = 1:2
 
                 end;
 
-                options = sprintf('-s 0 -t 4 -q %s-c %f -b 1 -g 0.07 -h 0',w_str,best_C);
+                options = sprintf('-s 0 -t 4 -q 1 %s-c %f -b 1 -g 0.07 -h 0',w_str,best_C);
 
                 model_libsvm = svmtrain(train_classes,K_train,options);
 
-                [~,acc_,~] = svmpredict(test_classes,K_test,model_libsvm,'-b 1');
-                acc(i) = acc_(1);
+                [~,acc_,~] = svmpredict(test_classes,K_test,model_libsvm,'-b 0');
+                acc(iter,i) = acc_(1);
 
                 fp = fopen(file_results,'a');
 
@@ -336,7 +336,7 @@ for ieps = 1:2
             model_libsvm = svmtrain(train_classes,K_train,options);
 
             [~,acc_,~] = svmpredict(test_classes,K_test,model_libsvm,'-b 1');
-            acc(MAX2+1) = acc_(1);
+            acc(iter,MAX2+1) = acc_(1);
 
             fp = fopen(file_results,'a');
 
@@ -348,9 +348,10 @@ for ieps = 1:2
             
         end;
         
+        disp(mean(acc)) ;
+        
     end;
 end;
-
 %% Get which kernel gives maximum accuracy and compute the diss mat and print 
 
 % acc = round2(acc,1e-4);
