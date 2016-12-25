@@ -17,7 +17,7 @@ file_node_vocab = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/MAO',
 file_edge_vocab = fullfile(workhome,'StochasticGraphletEmbedding/SavedData/MAO','edge_vocab.mat');
 
 force_compute.vocab = false;
-force_compute.hist_indices = false;
+force_compute.hist_indices = true;
 force_compute.kernels = true;
 
 cc = [1 10 50 100 1000];
@@ -93,7 +93,7 @@ end;
 epss = [0.1 0.05];
 dels = [0.1 0.05];
 
-MAX2 = uint32(5);
+MAX2 = uint32(8);
 
 T = [1 1 3 5 12 30 79 227 710 2322 8071];
 
@@ -126,7 +126,7 @@ for ieps = 1:2
                 
                 [~,classes_vertices] = ismember(atrvertices,cntrs_atrvertices);
 
-                classes_edges1 = atredges(:,1) ;
+%                 classes_edges1 = atredges(:,1) ;
                 
                 classes_edges2 = atredges(:,2) ;
 
@@ -176,13 +176,13 @@ for ieps = 1:2
                 % calculate edge signatures with the help of classes of the vertices
                 edges_graphlets = cellfun(@(x) [x(1:2:end)' x(2:2:end)'],graphlets,'UniformOutput',false);
                 [~,idx_edges] = cellfun(@(x) ismember(x,edges,'rows'), edges_graphlets, 'UniformOutput', false);
-                edge_sign1 = cellfun(@(x) classes_edges1(x)', idx_edges, 'UniformOutput', false);
+%                 edge_sign1 = cellfun(@(x) classes_edges1(x)', idx_edges, 'UniformOutput', false);
                 edge_sign2 = cellfun(@(x) classes_edges2(x)', idx_edges, 'UniformOutput', false);
 
                 clear edges_graphlets idx_edges;
 
                 for j = 1:size(hash_codes,1)
-                    hash_codes{j} = [node_sign{j},edge_sign1{j},edge_sign2{j},hash_codes{j},zeros(1,2*sizes_graphlets(j)-size(hash_codes{j},2))];
+                    hash_codes{j} = [node_sign{j},edge_sign2{j},hash_codes{j},zeros(1,2*sizes_graphlets(j)-size(hash_codes{j},2))];
                 end;
 
                 clear idxle4 idxge5 sorted_degrees_nodes betweenness_centralities node_sign edge_sign;
