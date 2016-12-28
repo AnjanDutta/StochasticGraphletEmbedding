@@ -254,38 +254,42 @@ for ieps = 1:2
         w = ones(1,MAX2);
         w = w/sum(MAX2);
 
-        K_train = [(1:ntrain_set)' lincomb(KM_train,w)];
-        K_test = [(1:ntest_set)' lincomb(KM_test,w)];
+        for i = 1:MAX2
+            
+            K_train = [(1:ntrain_set)' lincomb(KM_train(:,:,1:i),w(1:i))];
+            K_test = [(1:ntest_set)' lincomb(KM_test(:,:,1:i),w(1:i))];
 
-        best_cv = 0;
-        best_C = 0;
+            best_cv = 0;
+            best_C = 0;
 
-        for j=1:length(cc)
+            for j=1:length(cc)
 
-            options = sprintf('-s 0 -t 4 -g 0.07 -c %.2f -h 0 -b 1 %s-v 5 -q 1',cc(j),w_str);
-            model_libsvm = svmtrain(train_classes,K_train,options);
+                options = sprintf('-s 0 -t 4 -g 0.07 -c %.2f -h 0 -b 1 %s-v 5 -q 1',cc(j),w_str);
+                model_libsvm = svmtrain(train_classes,K_train,options);
 
-            if(model_libsvm>best_cv)
-                best_cv = model_libsvm;
-                best_C = cc(j);
+                if(model_libsvm>best_cv)
+                    best_cv = model_libsvm;
+                    best_C = cc(j);
+                end;
+
             end;
 
+            options = sprintf('-s 0 -t 4 %s-c %f -b 1 -g 0.07 -h 0 -q',w_str,best_C);
+
+            model_libsvm = svmtrain(train_classes,K_train,options);
+
+            [~,acc_,~] = svmpredict(test_classes,K_test,model_libsvm,'-b 1');
+            acc(MAX2+i) = acc_(1);
+
+            fp = fopen(file_results,'a');
+
+            fprintf(fp,'Combined: MAX1 = %d, MAX2 = %d, Acc. = %.2f\n\n',sum(MAX1(1:i)),i,acc(MAX2+i));
+
+            fclose(fp);
+
+            fprintf('Combined: MAX1 = %d, MAX2 = %d, Acc. = %.2f\n\n',sum(MAX1(1:i)),i,acc(MAX2+i));
+            
         end;
-
-        options = sprintf('-s 0 -t 4 %s-c %f -b 1 -g 0.07 -h 0 -q',w_str,best_C);
-
-        model_libsvm = svmtrain(train_classes,K_train,options);
-
-        [~,acc_,~] = svmpredict(test_classes,K_test,model_libsvm,'-b 1');
-        acc(MAX2+1) = acc_(1);
-
-        fp = fopen(file_results,'a');
-
-        fprintf(fp,'MAX1 = %d, MAX2 = %d, Comb. Acc. = %.2f\n\n',MAX1(end),MAX2,acc(MAX2+1));
-
-        fclose(fp);
-
-        fprintf('MAX1 = %d, MAX2 = %d, Comb. Acc. = %.2f\n\n',MAX1(end),MAX2,acc(MAX2+1));
         
     end;
 end;
